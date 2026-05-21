@@ -1,6 +1,5 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+const config = {
   content: [
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -50,16 +49,9 @@ const config: Config = {
           "50%": { opacity: "0" },
         },
       },
-      typography: {
-        DEFAULT: {
-          css: {
-            maxWidth: "none",
-          },
-        },
-      },
     },
   },
   plugins: [require("@tailwindcss/typography")],
 };
 
-export default config;
+module.exports = config;

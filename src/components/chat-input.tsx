@@ -3,15 +3,19 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Send, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ModelSelector } from "@/components/model-selector";
+import type { ModelOption } from "@/lib/models";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   onStop: () => void;
   isStreaming: boolean;
   disabled?: boolean;
+  selectedModel: ModelOption;
+  onSelectModel: (model: ModelOption) => void;
 }
 
-export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, isStreaming, disabled, selectedModel, onSelectModel }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -38,6 +42,15 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputPr
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
+      {/* Model selector row */}
+      <div className="flex justify-end mb-2">
+        <ModelSelector
+          selectedModel={selectedModel}
+          onSelectModel={onSelectModel}
+          disabled={isStreaming}
+        />
+      </div>
+
       <div
         className={cn(
           "relative flex items-end gap-2 rounded-2xl border border-border bg-card",

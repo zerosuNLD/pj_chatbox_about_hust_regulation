@@ -11,6 +11,7 @@ export interface SSEChatEvent {
  */
 export async function* streamAsk(
   question: string,
+  model: string,
   signal?: AbortSignal
 ): AsyncGenerator<SSEChatEvent, void, undefined> {
   const response = await fetch(`${API_URL}/ask`, {
@@ -19,7 +20,7 @@ export async function* streamAsk(
       "Content-Type": "application/json",
       Accept: "text/event-stream",
     },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, model }),
     signal,
   });
 

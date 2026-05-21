@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { streamAsk, SSEChatEvent } from "@/lib/api";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { streamAsk } from "@/lib/api";
+import {
+  getSession,
+  updateSessionMessages,
+} from "@/lib/session-store";
 
 export interface ThoughtStep {
   content: string;
@@ -19,19 +23,50 @@ function generateId(): string {
   return `msg-${++messageIdCounter}`;
 }
 
-export function useStreamChat() {
+export function useStreamChat(sessionId: string | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingAnswer, setStreamingAnswer] = useState("");
   const [streamingThoughts, setStreamingThoughts] = useState<ThoughtStep[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastSavedRef = useRef<string>("");
+
+  // Load messages when session changes
+  useEffect(() => {
+    if (sessionId) {
+      const session = getSession(sessionId);
+      setMessages(session?.messages ?? []);
+      lastSavedRef.current = JSON.stringify(session?.messages ?? []);
+    } else {
+      setMessages([]);
+      lastSavedRef.current = "[]";
+    }
+    setIsStreaming(false);
+    setStreamingAnswer("");
+    setStreamingThoughts([]);
+  }, [sessionId]);
+
+  // Persist messages to localStorage on changes
+  const persistIfNeeded = useCallback(
+    (msgs: ChatMessage[]) => {
+      if (!sessionId) return;
+      const json = JSON.stringify(msgs);
+      if (json !== lastSavedRef.current) {
+        updateSessionMessages(sessionId, msgs);
+        lastSavedRef.current = json;
+      }
+    },
+    [sessionId]
+  );
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setStreamingAnswer("");
     setStreamingThoughts([]);
-  }, []);
+    lastSavedRef.current = "[]";
+    if (sessionId) updateSessionMessages(sessionId, []);
+  }, [sessionId]);
 
   const stopStreaming = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -39,7 +74,7 @@ export function useStreamChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (question: string) => {
+    async (question: string, model: string) => {
       if (!question.trim() || isStreaming) return;
 
       // Add user message
@@ -49,7 +84,9 @@ export function useStreamChat() {
         content: question.trim(),
         thoughts: [],
       };
-      setMessages((prev) => [...prev, userMsg]);
+      const updatedMessages = [...messages, userMsg];
+      setMessages(updatedMessages);
+      persistIfNeeded(updatedMessages);
 
       // Start streaming
       setIsStreaming(true);
@@ -67,15 +104,17 @@ export function useStreamChat() {
         thoughts: [],
       };
 
-      // Add placeholder assistant message
       setMessages((prev) => [...prev, assistantMsg]);
 
       try {
-        let done = false;
         const thoughtList: ThoughtStep[] = [];
         let answerText = "";
 
-        for await (const event of streamAsk(question.trim(), abortController.signal)) {
+        for await (const event of streamAsk(
+          question.trim(),
+          model,
+          abortController.signal
+        )) {
           if (event.type === "thought") {
             const thought: ThoughtStep = { content: event.content };
             thoughtList.push(thought);
@@ -84,7 +123,6 @@ export function useStreamChat() {
             answerText += event.content;
             setStreamingAnswer(answerText);
           } else if (event.type === "done") {
-            done = true;
             break;
           } else if (event.type === "error") {
             setStreamingAnswer(`Error: ${event.content}`);
@@ -93,36 +131,43 @@ export function useStreamChat() {
         }
 
         // Finalize the message
-        setMessages((prev) =>
-          prev.map((msg) =>
+        setMessages((prev) => {
+          const final = prev.map((msg) =>
             msg.id === assistantId
               ? { ...msg, content: answerText, thoughts: thoughtList }
               : msg
-          )
-        );
+          );
+          persistIfNeeded(final);
+          return final;
+        });
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") {
-          // User cancelled - finalize with what we have
-          setMessages((prev) =>
-            prev.map((msg) =>
+          setMessages((prev) => {
+            const final = prev.map((msg) =>
               msg.id === assistantId
                 ? {
                     ...msg,
                     content: streamingAnswer || "(stopped)",
-                    thoughts: streamingThoughts.length > 0 ? streamingThoughts : [],
+                    thoughts:
+                      streamingThoughts.length > 0 ? streamingThoughts : [],
                   }
                 : msg
-            )
-          );
+            );
+            persistIfNeeded(final);
+            return final;
+          });
         } else {
-          const errorMsg = err instanceof Error ? err.message : "Unknown error";
-          setMessages((prev) =>
-            prev.map((msg) =>
+          const errorMsg =
+            err instanceof Error ? err.message : "Unknown error";
+          setMessages((prev) => {
+            const final = prev.map((msg) =>
               msg.id === assistantId
                 ? { ...msg, content: `Error: ${errorMsg}`, thoughts: [] }
                 : msg
-            )
-          );
+            );
+            persistIfNeeded(final);
+            return final;
+          });
         }
       } finally {
         setIsStreaming(false);
@@ -131,7 +176,7 @@ export function useStreamChat() {
         abortControllerRef.current = null;
       }
     },
-    [isStreaming, streamingAnswer, streamingThoughts]
+    [isStreaming, messages, streamingAnswer, streamingThoughts, persistIfNeeded]
   );
 
   return {

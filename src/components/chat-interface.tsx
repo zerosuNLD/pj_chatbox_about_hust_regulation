@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ChatInput } from "@/components/chat-input";
 import { Message } from "@/components/message";
 import { useStreamChat } from "@/hooks/use-stream-chat";
+import { DEFAULT_MODEL, type ModelOption } from "@/lib/models";
 
 interface ChatInterfaceProps {
+  sessionId: string | null;
   onFirstMessage?: () => void;
 }
 
-export function ChatInterface({ onFirstMessage }: ChatInterfaceProps) {
+export function ChatInterface({ sessionId, onFirstMessage }: ChatInterfaceProps) {
   const {
     messages,
     isStreaming,
@@ -18,14 +20,19 @@ export function ChatInterface({ onFirstMessage }: ChatInterfaceProps) {
     sendMessage,
     stopStreaming,
     messagesEndRef,
-  } = useStreamChat();
+  } = useStreamChat(sessionId);
 
-  const handleSend = (text: string) => {
-    if (messages.length === 0 && onFirstMessage) {
-      onFirstMessage();
-    }
-    sendMessage(text);
-  };
+  const [selectedModel, setSelectedModel] = useState<ModelOption>(DEFAULT_MODEL);
+
+  const handleSend = useCallback(
+    (text: string) => {
+      if (messages.length === 0 && onFirstMessage) {
+        onFirstMessage();
+      }
+      sendMessage(text, selectedModel.id);
+    },
+    [messages, onFirstMessage, sendMessage, selectedModel.id]
+  );
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -40,6 +47,8 @@ export function ChatInterface({ onFirstMessage }: ChatInterfaceProps) {
           onSend={handleSend}
           onStop={stopStreaming}
           isStreaming={isStreaming}
+          selectedModel={selectedModel}
+          onSelectModel={setSelectedModel}
         />
       </div>
     );
@@ -85,6 +94,8 @@ export function ChatInterface({ onFirstMessage }: ChatInterfaceProps) {
           onSend={handleSend}
           onStop={stopStreaming}
           isStreaming={isStreaming}
+          selectedModel={selectedModel}
+          onSelectModel={setSelectedModel}
         />
       </div>
     </div>
