@@ -43,7 +43,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, selectedModel
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
       {/* Model selector row */}
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end mb-2 gap-2">
         <ModelSelector
           selectedModel={selectedModel}
           onSelectModel={onSelectModel}

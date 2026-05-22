@@ -6,6 +6,16 @@ export interface ModelOption {
 
 export const AVAILABLE_MODELS: ModelOption[] = [
   {
+    id: "groq",
+    name: "Llama 3.3 70B",
+    provider: "Groq",
+  },
+  {
+    id: "deepseek-reasoner",
+    name: "DeepSeek Reasoner",
+    provider: "DeepSeek",
+  },
+  {
     id: "deepseek-v4-flash",
     name: "DeepSeek V4 Flash",
     provider: "Cloudflare",

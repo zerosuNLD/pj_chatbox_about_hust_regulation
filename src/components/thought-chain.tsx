@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ThoughtStep } from "@/hooks/use-stream-chat";
@@ -13,6 +13,16 @@ interface ThoughtChainProps {
 
 export function ThoughtChain({ thoughts, isStreaming, className }: ThoughtChainProps) {
   const [expanded, setExpanded] = useState(true);
+  const prevStreamingRef = useRef(isStreaming);
+
+  // Auto-collapse when streaming finishes (answer starts)
+  useEffect(() => {
+    const wasStreaming = prevStreamingRef.current;
+    prevStreamingRef.current = isStreaming;
+    if (wasStreaming && !isStreaming) {
+      setExpanded(false);
+    }
+  }, [isStreaming]);
 
   if (thoughts.length === 0 && !isStreaming) return null;
 

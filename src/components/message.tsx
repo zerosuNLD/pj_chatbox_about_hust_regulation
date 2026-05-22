@@ -78,25 +78,27 @@ export function Message({
               isStreaming={isStreaming && !displayContent}
             />
 
-            {/* Answer */}
-            {(displayContent || (isStreaming && !displayContent)) && (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                {displayContent ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {displayContent}
-                  </ReactMarkdown>
-                ) : (
-                  <span className="text-muted-foreground animate-pulse-subtle">
-                    Generating response...
-                  </span>
-                )}
+            {/* Answer — always render when assistant */}
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              {displayContent ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {displayContent}
+                </ReactMarkdown>
+              ) : isStreaming ? (
+                <span className="text-muted-foreground animate-pulse-subtle">
+                  Generating response...
+                </span>
+              ) : (
+                <span className="text-muted-foreground italic">
+                  (empty response)
+                </span>
+              )}
 
-                {/* Blinking cursor while streaming */}
-                {isStreaming && (
-                  <span className="inline-block w-1.5 h-4 ml-0.5 bg-accent animate-cursor-blink align-middle" />
-                )}
-              </div>
-            )}
+              {/* Blinking cursor while streaming */}
+              {isStreaming && (
+                <span className="inline-block w-1.5 h-4 ml-0.5 bg-accent animate-cursor-blink align-middle" />
+              )}
+            </div>
           </div>
         )}
       </div>

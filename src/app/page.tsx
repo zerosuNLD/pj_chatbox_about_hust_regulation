@@ -74,22 +74,12 @@ export default function Home() {
         </header>
 
         {/* Main Content */}
-        {hasMessages ? (
-          <ChatInterface
-            sessionId={activeSessionId}
-            onFirstMessage={handleFirstMessage}
-          />
-        ) : (
-          <>
-            <WelcomeScreen />
-            <div className="pb-4">
-              <ChatInterface
-                sessionId={activeSessionId}
-                onFirstMessage={handleFirstMessage}
-              />
-            </div>
-          </>
-        )}
+        {!hasMessages && <WelcomeScreen />}
+        <ChatInterface
+          key={activeSessionId}
+          sessionId={activeSessionId}
+          onFirstMessage={handleFirstMessage}
+        />
       </div>
     </div>
   );
