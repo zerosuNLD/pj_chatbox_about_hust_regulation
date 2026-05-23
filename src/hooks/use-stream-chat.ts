@@ -23,6 +23,16 @@ function generateId(): string {
   return `msg-${++messageIdCounter}`;
 }
 
+function getOrGenerateUserId(): string {
+  if (typeof window === "undefined") return "default_user";
+  let uid = localStorage.getItem("hust-qa-user-id");
+  if (!uid) {
+    uid = `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    localStorage.setItem("hust-qa-user-id", uid);
+  }
+  return uid;
+}
+
 export function useStreamChat(sessionId: string | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -113,6 +123,8 @@ export function useStreamChat(sessionId: string | null) {
         for await (const event of streamAsk(
           question.trim(),
           model,
+          sessionId || "default_thread",
+          getOrGenerateUserId(),
           abortController.signal
         )) {
           if (event.type === "thought") {
