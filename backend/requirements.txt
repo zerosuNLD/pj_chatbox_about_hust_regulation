@@ -1,0 +1,15 @@
+fastapi>=0.136
+uvicorn>=0.47
+httpx>=0.28
+langgraph>=1.2
+langchain-groq>=1.1
+langchain-openai>=1.2
+langchain-community>=0.4
+langchain-core>=1.4
+duckduckgo-search>=8.1
+networkx>=3.4
+pandas>=2.2
+faiss-cpu>=1.9
+sentence-transformers>=3.4
+numpy>=2.2
+langgraph-checkpoint-sqlite>=2.0.11

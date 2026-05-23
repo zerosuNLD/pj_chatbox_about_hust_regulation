@@ -1,0 +1,34 @@
+[METADATA]
+Tài liệu: Quy chế đào tạo Đại học Bách khoa Hà Nội
+Chương: I – CHƯƠNG I NHỮNG QUY ĐỊNH CHUNG
+Điều: Điều 5 – Điểm học phần
+[/METADATA]
+
+Điều 5. Điểm học phần
+
+Một học phần từ 2 TC trở lên được đánh giá từ hai điểm thành phần là điểm quá trình và điểm cuối kỳ, trong đó điểm cuối kỳ có trọng số từ 0,5 đến 0,8 theo quy định trong đề cương chi tiết học phần. Các học phần có khối lượng dưới 2 TC có thể đánh giá kết hợp điểm quá trình và điểm cuối kỳ, hoặc chỉ điểm cuối kỳ.
+Điểm quá trình được đánh giá qua thi giữa kỳ, kiểm tra thường kỳ, kết hợp thi giữa kỳ và kiểm tra thường kỳ hoặc kết hợp các thành phần khác (thí nghiệm, bài tập lớn, tiểu luận, chuyên cần…); hình thức và trọng số đánh giá các thành phần được quy định cụ thể trong đề cương chi tiết học phần. Đối với các giờ lên lớp, kết quả điểm danh có thể được sử dụng để cộng/trừ vào điểm quá trình của học phần như sau:
+Điểm chuyên cần được điều chỉnh theo số lần vắng mặt như sau:
+Sinh viên vắng mặt Điểm quá trình được cộng/trừ: lần sẽ được cộng +1 điểm vào điểm quá trình.
+Hình thức đánh giá để cho điểm cuối kỳ và trọng số đánh giá được quy định cụ thể trong đề cương chi tiết học phần.
+Hình thức đánh giá trực tuyến được áp dụng khi đảm bảo trung thực, công bằng và khách quan như đánh giá trực tiếp và được quy định bằng văn bản riêng.
+Điểm quá trình và điểm cuối kỳ là điểm số được cho theo thang 10 và có thể lẻ tới
+0,5:
+Điểm số dưới 5 đối với học phần đồ án tốt nghiệp/khóa luận tốt nghiệp cử nhân,
+đồ án tốt nghiệp kỹ sư được coi là điểm liệt;
+Điểm số dưới 3 đối với các học phần khác với quy định tại điểm a khoản 5 Điều này được coi là điểm liệt;
+Trường hợp người học không dự thi đúng lịch thi đã ấn định và không có lý do chính đáng thì điểm thi là điểm 0.
+Điểm học phần được tính từ tổng điểm thành phần với trọng số tương ứng, làm tròn tới một chữ số thập phân và quy đổi thành điểm chữ theo quy tắc dưới đây, trừ trường hợp có một điểm thành phần là điểm liệt thì điểm học phần là điểm F. Để tính các điểm trung bình, điểm học phần được quy đổi thành điểm số theo thang 4.
+Quy đổi điểm học phần theo thang 10 sang điểm chữ và thang 4 như sau:
+Điểm học phần từ Điểm chữ quy đổi theo thang 10 tương đương điểm chữ F và điểm số quy đổi D theo thang 4.
+Điểm học phần từ Điểm số quy đổi theo thang 10 tương đương điểm chữ 0 và điểm số quy đổi 1 theo thang 4.
+Điểm đạt của học phần được quy định như sau:
+Đối với CTĐT cử nhân và kỹ sư: từ điểm D trở lên, ngoại trừ các học phần tốt nghiệp (bao gồm đồ án tốt nghiệp/khóa luận tốt nghiệp cử nhân, đồ án tốt nghiệp kỹ sư) phải từ C trở lên.
+Đối với CTĐT thạc sĩ và tiến sĩ: từ điểm C trở lên.
+Người học có thể đăng ký học lại học phần đã có điểm đạt để cải thiện điểm trung bình tích lũy. Điểm lần cao nhất được công nhận là điểm chính thức của học phần.
+Một số điểm chữ đặc biệt được sử dụng trong các trường hợp sau và không quy đổi được thành điểm số để tính điểm trung bình học tập:
+Điểm I: điểm học phần chưa hoàn thiện do được hoãn thi đúng quy định.
+Điểm X: điểm học phần chưa hoàn thiện do thiếu dữ liệu đánh giá.
+Điểm R: điểm học phần được miễn học và công nhận TC.
+Điểm P: áp dụng cho các học phần chỉ yêu cầu đạt, không tính vào điểm trung bình học tập.
+đ) Điểm W: điểm học phần đã rút đăng ký học phần trong thời gian quy định.

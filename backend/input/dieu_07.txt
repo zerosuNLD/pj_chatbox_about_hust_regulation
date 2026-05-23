@@ -1,0 +1,11 @@
+[METADATA]
+Tài liệu: Quy chế đào tạo Đại học Bách khoa Hà Nội
+Chương: I – CHƯƠNG I NHỮNG QUY ĐỊNH CHUNG
+Điều: Điều 7 – Số tín chỉ tích lũy, điểm trung bình tích lũy
+[/METADATA]
+
+Điều 7. Số tín chỉ tích lũy, điểm trung bình tích lũy
+
+Số TC tích lũy là tổng số TC của các học phần có điểm đạt kể từ đầu khóa kể cả các học phần được miễn học, được công nhận TC.
+Điểm trung bình học kỳ (GPA) là trung bình cộng điểm số quy đổi theo thang 4 của các học phần đã học trong học kỳ với trọng số là số TC của học phần. Điểm trung bình học kỳ được làm tròn tới 2 chữ số thập phân.
+Điểm trung bình tích lũy (CPA) là trung bình cộng điểm số quy đổi theo thang 4 của các học phần đã học từ đầu khóa thuộc chương trình đào tạo với trọng số là số TC của học phần. Điểm trung bình tích lũy được làm tròn tới 2 chữ số thập phân.

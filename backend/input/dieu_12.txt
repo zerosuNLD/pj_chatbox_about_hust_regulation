@@ -1,0 +1,31 @@
+[METADATA]
+Tài liệu: Quy chế đào tạo Đại học Bách khoa Hà Nội
+Chương: II – CHƯƠNG II ĐÀO TẠO ĐẠI HỌC
+Điều: Điều 12 – Ý kiến phản hồi của người học, đánh giá kết quả học tập
+[/METADATA]
+
+Điều 12. Ý kiến phản hồi của người học, đánh giá kết quả học tập
+
+Kết thúc mỗi học kỳ, sinh viên tham gia khảo sát lấy ý kiến phản hồi về các điều kiện bảo đảm chất lượng, hiệu quả học tập và sự hài lòng của người học đối với các lớp học phần.
+Kết quả học tập trong một học kỳ của sinh viên được đánh giá trên cơ sở điểm của các học phần đã đăng ký học thuộc CTĐT nhưng không tính các học phần có điểm R và
+các học phần về ngoại ngữ cơ bản, Giáo dục thể chất, Giáo dục quốc phòng-an ninh, thể hiện bằng các chỉ số sau đây:
+Tổng số TC của các học phần có điểm đạt trong học kỳ (số TC đạt).
+Tổng số TC của các học phần có điểm không đạt trong học kỳ (số TC không đạt).
+Điểm trung bình học kỳ (GPA).
+Kết quả tiến bộ học tập của sinh viên từ đầu khóa được đánh giá trên cơ sở điểm của các học phần đã học thuộc CTĐT nhưng không tính các học phần về ngoại ngữ cơ bản, Giáo dục thể chất, Giáo dục quốc phòng-an ninh, thể hiện bằng các chỉ số sau đây:
+Số TC tích lũy (số TCTL).
+Tổng số TC của các học phần đã học nhưng chưa đạt từ đầu khóa (số TC nợ đọng).
+Điểm trung bình tích lũy (CPA).
+Kết quả học tập học kỳ hè được đánh giá ở kỳ chính kế tiếp.
+Sinh viên được xếp hạng trình độ năm học căn cứ số TC tích lũy (TCTL) như sau:
+Sinh viên được xếp hạng trình độ năm học căn cứ số tín chỉ tích lũy (TCTL):
+Sinh viên có số TCTL Trình độ được xếp trình độ Năm thứ nhất.
+Sinh viên được xếp loại học lực theo học kỳ căn cứ điểm trung bình học kỳ và xếp loại học lực từ đầu khóa căn cứ điểm trung bình tích lũy như sau:
+Xếp loại học lực theo điểm trung bình học kỳ (GPA) hoặc tích lũy (CPA):
+Điểm trung bình Xếp loại được xếp loại học lực: Kém.
+Trong trường hợp cần thiết, điểm trung bình học kỳ và điểm trung bình tích lũy đạt từ loại trung bình trở lên có thể được quy đổi tương đương sang thang điểm 10 theo quy tắc như sau:
+Quy đổi điểm học phần theo thang 10 sang điểm chữ và thang 4 như sau:
+Điểm học phần từ 2,0 đến cận 2,5 theo thang 10 tương đương điểm chữ 5,5 đến cận 7,0 và điểm số quy đổi a = 3,00; b = 0,5 theo thang 4.
+Điểm học phần từ 2,5 đến cận 3,2 theo thang 10 tương đương điểm chữ 7,0 đến cận 8,0 và điểm số quy đổi a = 1,42; b = 3,45 theo thang 4.
+Điểm học phần từ 3,2 đến cận 3,6 theo thang 10 tương đương điểm chữ 8,0 đến cận 9,0 và điểm số quy đổi a = 2,50; b = 0.00 theo thang 4.
+Điểm học phần từ 3,6 đến tròn 4,0 theo thang 10 tương đương điểm chữ 9,0 đến tròn 10 và điểm số quy đổi a = 2,50; b = 0.00 theo thang 4.

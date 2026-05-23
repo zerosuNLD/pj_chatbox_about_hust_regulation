@@ -1,0 +1,25 @@
+[METADATA]
+Tài liệu: Quy chế đào tạo Đại học Bách khoa Hà Nội
+Chương: I – CHƯƠNG I NHỮNG QUY ĐỊNH CHUNG
+Điều: Điều 4 – Tín chỉ và học phần
+[/METADATA]
+
+Điều 4. Tín chỉ và học phần
+
+Tín chỉ là đơn vị đo khối lượng học tập. Một TC được tính tương đương 50 giờ học tập định mức của người học, bao gồm cả thời gian dự giờ giảng, giờ học có hướng dẫn, tự học, nghiên cứu, trải nghiệm và dự kiểm tra, đánh giá.
+Đối với hoạt động dạy học trên lớp, một TC yêu cầu thực hiện tối thiểu 15 giờ giảng hoặc 30 giờ thực hành, thí nghiệm, thảo luận; 45 giờ thực tập tại cơ sở; 45 giờ làm tiểu luận, bài tập lớn hoặc đồ án, khóa luận tốt nghiệp. Một tuần làm đồ án toàn thời gian tương đương 1 TC; một tuần thực tập toàn thời gian tương đương 0,5-0,6 TC.
+Học phần là đơn vị cấu thành chương trình học tập và được thực hiện trọn vẹn trong một học kỳ. Một học phần có khối lượng từ 1 TC đến 4 TC, trừ một số học phần như thực tập, đồ án/khóa luận tốt nghiệp, luận văn, luận án có thể có khối lượng lớn hơn.
+Mỗi học phần được ấn định một mã số riêng và có thể được sử dụng trong nhiều CTĐT.
+Chương trình học tập có thể bao gồm các nhóm học phần bắt buộc và học phần tự chọn như sau:
+Nhóm học phần bắt buộc: người học phải hoàn thành tất cả học phần trong danh mục quy định.
+Nhóm học phần tự chọn theo mô đun: người học chọn một định hướng chuyên môn và phải hoàn thành tất cả học phần trong danh mục của nhóm học phần tự chọn theo mô đun.
+Nhóm học phần tự chọn: người học chọn lựa một số học phần trong danh mục để tích lũy đủ số TC quy định.
+Học phần tương đương và học phần thay thế
+Hai học phần được coi là tương đương khi có nội dung chuyên môn trùng lặp tối thiểu 70%. Trong trường hợp cần thiết, người học được tùy chọn học một học phần tương đương để lấy kết quả thay cho một học phần yêu cầu trong CTĐT, tuy nhiên cần đảm bảo số tín chỉ của học phần tương đương tối thiểu bằng hoặc lớn hơn số tín chỉ của học phần yêu cầu trong CTĐT. Quy định này áp dụng cho cả trường hợp người học mong muốn học cải thiện điểm trung bình tích lũy.
+Người học được phép học một học phần thay thế được trường/khoa/viện chỉ định để lấy kết quả thay cho một học phần yêu cầu trong chương trình nhưng không còn được giảng dạy.
+Điều kiện tham dự một học phần được quy định trong đề cương chi tiết của học phần gồm một hoặc nhiều yếu tố dưới đây:
+Học phần tiên quyết: Học phần A là học phần tiên quyết của học phần B thì sinh viên phải hoàn thành học phần A (với mức điểm đạt) mới được dự lớp học phần B.
+Học phần học trước: Học phần A là học phần học trước của học phần B thì sinh viên phải đăng ký và học xong (có thể chưa đạt) học phần A mới được dự lớp học phần B.
+Học phần song hành: Học phần A là học phần song hành của học phần B thì sinh viên phải theo học trước hoặc học đồng thời với học phần B.
+Đề cương chi tiết của học phần thể hiện rõ khối lượng học tập, điều kiện tham dự học phần, mục tiêu và chuẩn đầu ra của học phần, mức độ đáp ứng chuẩn đầu ra của chương
+trình, cách thức đánh giá học phần, nội dung học tập, phương thức và ngôn ngữ giảng dạy, giáo trình và tài liệu tham khảo.
