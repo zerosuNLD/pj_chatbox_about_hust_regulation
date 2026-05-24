@@ -5,7 +5,16 @@ node_modules/
 .yarn/
 .npm-cache/
 
-# Next.js build output
+# Ignore backend logs
+backend/logs/
+backend/output/
+backend/checkpoints.db
+
+.agents/
+.npm-cache
+backend-repo/
+
+# Ignore frontend build output
 .next/
 out/
 build/
@@ -34,6 +43,12 @@ backend/logs/
 backend/output/
 backend/tmp/
 backend/torchinductor_duy/
+backend/input/book.txt
+
+# Generated data files (parquet, pickle, FAISS)
+*.parquet
+*.pkl
+*.faiss
 
 # IDE & system metadata
 .DS_Store
@@ -44,5 +59,10 @@ yarn-error.log*
 .pnpm-debug.log*
 .vercel/
 *.tsbuildinfo
+next-env.d.ts
 .agents/
 backend-repo/
+
+# OS thumbnails
+Thumbs.db
+Desktop.ini

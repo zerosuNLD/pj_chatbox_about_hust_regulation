@@ -1,8 +1,8 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface SSEChatEvent {
-  type: "thought" | "answer" | "done" | "error";
-  content: string;
+  type: "thought" | "answer" | "done" | "error" | "sources" | "clarify" | "answer_retract";
+  content: any;
 }
 
 /**
@@ -23,6 +23,69 @@ export async function* streamAsk(
       Accept: "text/event-stream",
     },
     body: JSON.stringify({ question, model, thread_id: threadId, user_id: userId }),
+    signal,
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`API error ${response.status}: ${body}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("Response body is not readable");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Parse SSE lines
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(":")) continue;
+
+        if (trimmed.startsWith("data: ")) {
+          const jsonStr = trimmed.slice(6);
+          try {
+            const event: SSEChatEvent = JSON.parse(jsonStr);
+            yield event;
+          } catch {
+            // Skip malformed JSON
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+/**
+ * Resumes a paused agent run after HITL approval/rejection.
+ */
+export async function* streamResume(
+  threadId: string,
+  userId: string,
+  approved: boolean,
+  signal?: AbortSignal
+): AsyncGenerator<SSEChatEvent, void, undefined> {
+  const response = await fetch(`${API_URL}/resume`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    },
+    body: JSON.stringify({ thread_id: threadId, user_id: userId, approved }),
     signal,
   });
 

@@ -17,7 +17,10 @@ export function ChatInterface({ sessionId, onFirstMessage }: ChatInterfaceProps)
     isStreaming,
     streamingAnswer,
     streamingThoughts,
+    streamingSources,
+    streamingClarifyPrompt,
     sendMessage,
+    respondToClarify,
     stopStreaming,
     messagesEndRef,
   } = useStreamChat(sessionId);
@@ -70,6 +73,8 @@ export function ChatInterface({ sessionId, onFirstMessage }: ChatInterfaceProps)
                 role={msg.role}
                 content={msg.content}
                 thoughts={msg.thoughts}
+                sources={msg.sources}
+                clarifyPrompt={msg.clarifyPrompt}
                 isStreaming={isLastAssistant && isStreaming}
                 streamingContent={
                   isLastAssistant && isStreaming
@@ -81,6 +86,17 @@ export function ChatInterface({ sessionId, onFirstMessage }: ChatInterfaceProps)
                     ? streamingThoughts
                     : undefined
                 }
+                streamingSources={
+                  isLastAssistant && isStreaming
+                    ? streamingSources
+                    : undefined
+                }
+                streamingClarifyPrompt={
+                  isLastAssistant && isStreaming
+                    ? streamingClarifyPrompt
+                    : undefined
+                }
+                onClarifyResponse={(approved) => respondToClarify(msg.id, approved)}
               />
             );
           })}

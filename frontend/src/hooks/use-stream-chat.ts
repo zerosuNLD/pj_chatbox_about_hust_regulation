@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { streamAsk } from "@/lib/api";
+import { streamAsk, streamResume } from "@/lib/api";
 import {
   getSession,
   updateSessionMessages,
@@ -16,6 +16,8 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   thoughts: ThoughtStep[];
+  sources?: string[];
+  clarifyPrompt?: string;
 }
 
 let messageIdCounter = 0;
@@ -38,6 +40,8 @@ export function useStreamChat(sessionId: string | null) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingAnswer, setStreamingAnswer] = useState("");
   const [streamingThoughts, setStreamingThoughts] = useState<ThoughtStep[]>([]);
+  const [streamingSources, setStreamingSources] = useState<string[]>([]);
+  const [streamingClarifyPrompt, setStreamingClarifyPrompt] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastSavedRef = useRef<string>("");
@@ -55,6 +59,8 @@ export function useStreamChat(sessionId: string | null) {
     setIsStreaming(false);
     setStreamingAnswer("");
     setStreamingThoughts([]);
+    setStreamingSources([]);
+    setStreamingClarifyPrompt(null);
   }, [sessionId]);
 
   // Persist messages to localStorage on changes
@@ -74,6 +80,8 @@ export function useStreamChat(sessionId: string | null) {
     setMessages([]);
     setStreamingAnswer("");
     setStreamingThoughts([]);
+    setStreamingSources([]);
+    setStreamingClarifyPrompt(null);
     lastSavedRef.current = "[]";
     if (sessionId) updateSessionMessages(sessionId, []);
   }, [sessionId]);
@@ -102,6 +110,8 @@ export function useStreamChat(sessionId: string | null) {
       setIsStreaming(true);
       setStreamingAnswer("");
       setStreamingThoughts([]);
+      setStreamingSources([]);
+      setStreamingClarifyPrompt(null);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -119,6 +129,8 @@ export function useStreamChat(sessionId: string | null) {
       try {
         const thoughtList: ThoughtStep[] = [];
         let answerText = "";
+        let sourcesList: string[] = [];
+        let clarifyVal: string | null = null;
 
         for await (const event of streamAsk(
           question.trim(),
@@ -134,6 +146,26 @@ export function useStreamChat(sessionId: string | null) {
           } else if (event.type === "answer") {
             answerText += event.content;
             setStreamingAnswer(answerText);
+          } else if (event.type === "answer_retract") {
+            // Backend detected that streamed tokens were intermediate thought — retract them
+            const retracted = event.content as string;
+            // Remove retracted text from the end of answerText
+            if (answerText.endsWith(retracted)) {
+              answerText = answerText.slice(0, -retracted.length);
+            } else {
+              // Fallback: best-effort trim (may differ slightly due to whitespace)
+              answerText = answerText.slice(0, Math.max(0, answerText.length - retracted.length));
+            }
+            setStreamingAnswer(answerText);
+            // Add retracted content to thoughts
+            thoughtList.push({ content: retracted });
+            setStreamingThoughts([...thoughtList]);
+          } else if (event.type === "sources") {
+            sourcesList = [...sourcesList, ...event.content];
+            setStreamingSources(sourcesList);
+          } else if (event.type === "clarify") {
+            clarifyVal = event.content;
+            setStreamingClarifyPrompt(clarifyVal);
           } else if (event.type === "done") {
             break;
           } else if (event.type === "error") {
@@ -146,7 +178,13 @@ export function useStreamChat(sessionId: string | null) {
         setMessages((prev) => {
           const final = prev.map((msg) =>
             msg.id === assistantId
-              ? { ...msg, content: answerText, thoughts: thoughtList }
+              ? {
+                  ...msg,
+                  content: answerText,
+                  thoughts: thoughtList,
+                  sources: sourcesList.length > 0 ? sourcesList : undefined,
+                  clarifyPrompt: clarifyVal || undefined,
+                }
               : msg
           );
           persistIfNeeded(final);
@@ -162,6 +200,8 @@ export function useStreamChat(sessionId: string | null) {
                     content: streamingAnswer || "(stopped)",
                     thoughts:
                       streamingThoughts.length > 0 ? streamingThoughts : [],
+                    sources: streamingSources.length > 0 ? streamingSources : undefined,
+                    clarifyPrompt: streamingClarifyPrompt || undefined,
                   }
                 : msg
             );
@@ -185,10 +225,136 @@ export function useStreamChat(sessionId: string | null) {
         setIsStreaming(false);
         setStreamingAnswer("");
         setStreamingThoughts([]);
+        setStreamingSources([]);
+        setStreamingClarifyPrompt(null);
         abortControllerRef.current = null;
       }
     },
-    [isStreaming, messages, streamingAnswer, streamingThoughts, persistIfNeeded]
+    [isStreaming, messages, streamingAnswer, streamingThoughts, streamingSources, streamingClarifyPrompt, persistIfNeeded, sessionId]
+  );
+
+  const respondToClarify = useCallback(
+    async (messageId: string, approved: boolean) => {
+      if (isStreaming) return;
+
+      // Update message to remove clarity prompt
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, clarifyPrompt: undefined }
+            : msg
+        )
+      );
+
+      setIsStreaming(true);
+      setStreamingAnswer("");
+      setStreamingThoughts([]);
+      setStreamingSources([]);
+      setStreamingClarifyPrompt(null);
+
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      try {
+        let answerText = "";
+        let sourcesList: string[] = [];
+        const thoughtList: ThoughtStep[] = [];
+        let clarifyVal: string | null = null;
+
+        for await (const event of streamResume(
+          sessionId || "default_thread",
+          getOrGenerateUserId(),
+          approved,
+          abortController.signal
+        )) {
+          if (event.type === "thought") {
+            const thought: ThoughtStep = { content: event.content };
+            thoughtList.push(thought);
+            setStreamingThoughts([...thoughtList]);
+          } else if (event.type === "answer") {
+            answerText += event.content;
+            setStreamingAnswer(answerText);
+          } else if (event.type === "sources") {
+            sourcesList = [...sourcesList, ...event.content];
+            setStreamingSources(sourcesList);
+          } else if (event.type === "clarify") {
+            clarifyVal = event.content;
+            setStreamingClarifyPrompt(clarifyVal);
+          } else if (event.type === "done") {
+            break;
+          } else if (event.type === "error") {
+            setStreamingAnswer(`Error: ${event.content}`);
+            break;
+          }
+        }
+
+        // Finalize the resumed response
+        setMessages((prev) => {
+          const final = prev.map((msg) => {
+            if (msg.id === messageId) {
+              const mergedThoughts = [...msg.thoughts, ...thoughtList];
+              const mergedSources = Array.from(
+                new Set([...(msg.sources || []), ...sourcesList])
+              );
+              const updatedContent = msg.content
+                ? msg.content + "\n\n" + answerText
+                : answerText;
+              return {
+                ...msg,
+                content: updatedContent,
+                thoughts: mergedThoughts,
+                sources: mergedSources.length > 0 ? mergedSources : undefined,
+                clarifyPrompt: clarifyVal || undefined,
+              };
+            }
+            return msg;
+          });
+          persistIfNeeded(final);
+          return final;
+        });
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setMessages((prev) => {
+            const final = prev.map((msg) => {
+              if (msg.id === messageId) {
+                return {
+                  ...msg,
+                  content: msg.content + (streamingAnswer ? "\n\n" + streamingAnswer : ""),
+                  thoughts: [...msg.thoughts, ...streamingThoughts],
+                  sources: Array.from(
+                    new Set([...(msg.sources || []), ...streamingSources])
+                  ),
+                  clarifyPrompt: streamingClarifyPrompt || undefined,
+                };
+              }
+              return msg;
+            });
+            persistIfNeeded(final);
+            return final;
+          });
+        } else {
+          const errorMsg =
+            err instanceof Error ? err.message : "Unknown error";
+          setMessages((prev) => {
+            const final = prev.map((msg) =>
+              msg.id === messageId
+                ? { ...msg, content: msg.content + `\n\nError: ${errorMsg}` }
+                : msg
+            );
+            persistIfNeeded(final);
+            return final;
+          });
+        }
+      } finally {
+        setIsStreaming(false);
+        setStreamingAnswer("");
+        setStreamingThoughts([]);
+        setStreamingSources([]);
+        setStreamingClarifyPrompt(null);
+        abortControllerRef.current = null;
+      }
+    },
+    [isStreaming, streamingAnswer, streamingThoughts, streamingSources, streamingClarifyPrompt, persistIfNeeded, sessionId]
   );
 
   return {
@@ -196,7 +362,10 @@ export function useStreamChat(sessionId: string | null) {
     isStreaming,
     streamingAnswer,
     streamingThoughts,
+    streamingSources,
+    streamingClarifyPrompt,
     sendMessage,
+    respondToClarify,
     stopStreaming,
     clearMessages,
     messagesEndRef,
