@@ -21,6 +21,7 @@ export async function* streamAsk(
     headers: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
+      "ngrok-skip-browser-warning": "69420",
     },
     body: JSON.stringify({ question, model, thread_id: threadId, user_id: userId }),
     signal,
@@ -84,6 +85,7 @@ export async function* streamResume(
     headers: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
+      "ngrok-skip-browser-warning": "69420",
     },
     body: JSON.stringify({ thread_id: threadId, user_id: userId, approved }),
     signal,

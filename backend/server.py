@@ -1,4 +1,5 @@
 """FastAPI SSE server — bridges the LangGraph agent with the Next.js frontend.
+ngrok http 8000 --region ap
 
 SSE events streamed to the frontend:
   data: {"type": "thought",        "content": "..."}  — agent reasoning / tool calls
