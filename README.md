@@ -90,7 +90,7 @@ hust-qa/
 > Cách đơn giản nhất — chỉ cần **Docker Desktop** và **API keys**, không cần cài Python hay Node.js.
 
 ### Yêu cầu
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) đã cài và đang chạy
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### 3 bước để chạy
 
