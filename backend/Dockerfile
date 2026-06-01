@@ -12,8 +12,10 @@ WORKDIR /app
 
 # ── System deps ───────────────────────────────────────────────────────────────
 # libgomp1: required by faiss-cpu for OpenMP threading
+# curl: used by docker-compose healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Python dependencies ───────────────────────────────────────────────────────

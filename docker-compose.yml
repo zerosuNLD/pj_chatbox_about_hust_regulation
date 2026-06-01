@@ -2,8 +2,9 @@
 # HUST Q&A — Docker Compose
 #
 # Usage:
-#   1. cp backend/.env.example backend/.env
-#   2. Edit backend/.env (fill in GROQ_API_KEY, DEEPSEEK_API_KEY)
+#   1. Copy backend\.env.example → backend\.env  (Windows: copy)
+#      Or:  cp backend/.env.example backend/.env  (Mac/Linux)
+#   2. Edit backend/.env — fill in GROQ_API_KEY and DEEPSEEK_API_KEY
 #   3. docker compose up --build
 #
 # Services:
@@ -24,15 +25,15 @@ services:
       - ./backend/.env
     volumes:
       # Persist FAISS naive index across container restarts
-      # (built on first startup, ~30-60s — subsequent starts are instant)
+      # (built on first startup ~30-60s — subsequent starts are instant)
       - naive_index_cache:/app/output/naive_index
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
       timeout: 10s
-      retries: 3
-      start_period: 90s  # allow time for FAISS index build on first run
+      retries: 5
+      start_period: 120s  # allow time for FAISS index build on first run
 
   # ── Frontend: Next.js Chat Interface ────────────────────────────────────
   frontend:
@@ -41,6 +42,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Backend URL as seen from the USER'S BROWSER (not inside Docker network)
+        # Both ports are exposed to localhost so this works on any machine
         NEXT_PUBLIC_API_URL: http://localhost:8000
     container_name: hust-qa-frontend
     ports:
@@ -48,10 +50,10 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    restart: unless-stopped
+    restart: on-failure
 
 # ── Named Volumes ────────────────────────────────────────────────────────────
 volumes:
   naive_index_cache:
-    # FAISS index is stored here so it persists across `docker compose restart`
-    # To force rebuild: docker compose down -v && docker compose up
+    # FAISS index persists across `docker compose restart`
+    # To force full rebuild: docker compose down -v && docker compose up --build
