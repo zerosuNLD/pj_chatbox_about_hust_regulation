@@ -1,38 +1,52 @@
-"""GraphRAG tools for smolagents — local, global, and naive search over HUST knowledge graph."""
+"""GraphRAG tools for smolagents — local, global, and naive search over HUST knowledge graph.
+
+Refactored to mirror GraphRAG's official LocalSearch / GlobalSearch patterns:
+  • local_search_hybrid  → LocalSearch-style context (pipe-separated entity / relationship /
+                           community tables matching LocalContextBuilder output) + naive passages
+  • global_search_hybrid → GlobalSearch-style map-reduce (importance-scored analyst findings
+                           matching _reduce_response context format) + naive passages
+  • naive_search         → pure FAISS cosine-similarity search (unchanged)
+"""
 
 import os
 import re
 import pickle
+from collections.abc import Iterable
+from typing import Any
+
 import numpy as np
 import networkx as nx
 import pandas as pd
 import faiss
 from sentence_transformers import SentenceTransformer
 
-# ── Paths ──
-OUTPUT_DIR = "output"
-INPUT_FILE = "input/book.txt"
+# ── Paths ──────────────────────────────────────────────────────────────────────
+OUTPUT_DIR      = "output"
+INPUT_FILE      = "input/book.txt"
 NAIVE_INDEX_DIR = "output/naive_index"
-NAIVE_INDEX_FILE = f"{NAIVE_INDEX_DIR}/index.faiss"
+NAIVE_INDEX_FILE  = f"{NAIVE_INDEX_DIR}/index.faiss"
 NAIVE_CHUNKS_FILE = f"{NAIVE_INDEX_DIR}/chunks.pkl"
-NAIVE_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-GRAPH_CACHE_FILE = f"{OUTPUT_DIR}/graph_cache.pkl"
+NAIVE_MODEL_NAME  = "sentence-transformers/all-MiniLM-L6-v2"
+GRAPH_CACHE_FILE  = f"{OUTPUT_DIR}/graph_cache.pkl"
 
-# ── Lazy globals ──
-_G: nx.Graph | None = None
-_reports_df: pd.DataFrame | None = None
-_entity_word_index: dict[str, set[str]] | None = None  # word → {entity_titles}
-_naive_index: faiss.Index | None = None
-_naive_chunks: list[str] | None = None
-_naive_model: SentenceTransformer | None = None
-_naive_gpu_res = None
-_use_gpu: bool = False
+# Column delimiter used by GraphRAG's LocalContextBuilder
+COL_SEP = "|"
+
+# ── Lazy globals ───────────────────────────────────────────────────────────────
+_G: nx.Graph | None                       = None
+_reports_df: pd.DataFrame | None         = None
+_entity_word_index: dict[str, set[str]] | None = None   # word → {entity_titles}
+_naive_index: faiss.Index | None          = None
+_naive_chunks: list[str] | None           = None
+_naive_model: SentenceTransformer | None  = None
+_naive_gpu_res                            = None
+_use_gpu: bool                            = False
 
 # FAISS GPU support is optional (requires faiss built with GPU)
 try:
-    _faiss_has_gpu = hasattr(faiss, 'StandardGpuResources')
-    if _faiss_has_gpu:
-        _faiss_has_gpu = hasattr(faiss, 'index_cpu_to_gpu')
+    _faiss_has_gpu = hasattr(faiss, "StandardGpuResources") and hasattr(
+        faiss, "index_cpu_to_gpu"
+    )
 except Exception:
     _faiss_has_gpu = False
 
@@ -61,7 +75,11 @@ else:
         return index
 
 
-def _ensure_loaded():
+# ══════════════════════════════════════════════════════════════════════════════
+#  Graph loading  (unchanged)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _ensure_loaded() -> None:
     global _G, _reports_df, _entity_word_index
     if _G is not None:
         return
@@ -76,11 +94,10 @@ def _ensure_loaded():
 
     # 2. Build from parquet (first time only)
     print("Building graph from parquet (first time)...")
-    entities_df = pd.read_parquet(f"{OUTPUT_DIR}/entities.parquet")
-    rels_df = pd.read_parquet(f"{OUTPUT_DIR}/relationships.parquet")
-    _reports_df = pd.read_parquet(f"{OUTPUT_DIR}/community_reports.parquet")
+    entities_df  = pd.read_parquet(f"{OUTPUT_DIR}/entities.parquet")
+    rels_df      = pd.read_parquet(f"{OUTPUT_DIR}/relationships.parquet")
+    _reports_df  = pd.read_parquet(f"{OUTPUT_DIR}/community_reports.parquet")
 
-    # Build entity word index for fast lookup: word → {entity_titles}
     from collections import defaultdict
     _entity_word_index = defaultdict(set)
 
@@ -95,7 +112,7 @@ def _ensure_loaded():
             degree=int(row["degree"]),
             entity_id=row["id"],
         )
-        # Index every word in title + description
+        # Index every word in title + description for O(1) candidate lookup
         text = f"{title} {row['description']}".lower()
         for word in set(text.split()):
             _entity_word_index[word].add(title)
@@ -111,12 +128,15 @@ def _ensure_loaded():
             relation_id=row["id"],
         )
 
-    # 3. Save cache for next time
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     with open(GRAPH_CACHE_FILE, "wb") as f:
         pickle.dump((_G, _reports_df, _entity_word_index), f)
     print(f"  Graph cached: {_G.number_of_nodes()} nodes, {_G.number_of_edges()} edges")
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Naive FAISS helpers  (unchanged)
+# ══════════════════════════════════════════════════════════════════════════════
 
 def _naive_search_raw(query: str, top_k: int = 5) -> list[tuple[str, float]]:
     """Internal: return list of (chunk_text, score) from FAISS cosine search."""
@@ -136,157 +156,330 @@ def _naive_search_raw(query: str, top_k: int = 5) -> list[tuple[str, float]]:
 
 
 def _format_naive_section(query: str) -> str:
-    """Build the 'Additional from Naive Search' appendix."""
+    """Build the 'Additional from Naive Search' appendix (hybrid augmentation)."""
     results = _naive_search_raw(query)
     if not results:
         return ""
     lines = ["", "---", "### Additional from Naive Search", ""]
     for rank, (chunk, score) in enumerate(results):
-        lines.append(f"Naive #{rank+1} (similarity: {score:.4f})")
+        lines.append(f"Naive #{rank + 1} (similarity: {score:.4f})")
         lines.append(chunk)
         lines.append("")
     return "\n".join(lines)
 
 
-# ─── Original searches (internal helpers, NOT @tool) ───
+# ══════════════════════════════════════════════════════════════════════════════
+#  Context-building helpers
+#  (new private helpers extracted from the two main search functions)
+# ══════════════════════════════════════════════════════════════════════════════
 
-# (local_search, global_search, naive_search are defined below as plain functions)
+def _score_and_rank_entities(qw: set[str]) -> list[tuple[int, str, dict]]:
+    """Keyword-score all candidate entities and return sorted [(score, name, attrs)].
 
-
-def local_search_hybrid(query: str, top_k: int = 10) -> str:
-    """Search knowledge graph entities/relationships and append relevant raw passages.
-    Combines graph-based local search (entities + BFS neighbors) with semantic
-    passage retrieval for richer context.
-    Best for: specific factual questions (e.g. "graduation conditions").
-
-    Args:
-        query: The user's question in natural language.
-        top_k: Max related entities (default 10).
+    Uses the pre-built word index for O(1) candidate lookup rather than
+    scanning all nodes — same optimisation as the original implementation.
+    Falls back to all nodes only when the index returns nothing.
     """
-    _ensure_loaded()
-    G = _G
-    q = query.lower()
-    qw = set(q.split())
-
-    # Use keyword index for O(1) candidate lookup instead of scanning all 573 nodes
     candidates: set[str] = set()
     for w in qw:
         candidates |= _entity_word_index.get(w, set())
 
-    matched = []
+    matched: list[tuple[int, str, dict]] = []
     if candidates:
         for node in candidates:
-            data = G.nodes[node]
-            score = sum(3 for w in qw if w in node.lower())
-            score += sum(1 for w in qw if w in data.get("description", "").lower())
+            data = _G.nodes[node]
+            title_hits = sum(3 for w in qw if w in node.lower())
+            desc_hits  = sum(1 for w in qw if w in data.get("description", "").lower())
+            score = title_hits + desc_hits
             if score > 0:
                 matched.append((score, node, data))
-    if not matched:
-        # Fallback: search all nodes only when index returns nothing
-        for node, data in G.nodes(data=True):
-            matched.append((0, node, data))
+
+    if not matched:                                      # full-scan fallback
+        matched = [(0, n, d) for n, d in _G.nodes(data=True)]
+
     matched.sort(key=lambda x: -x[0])
+    return matched
+
+
+def _build_entity_table(nodes_data: dict[str, dict]) -> list[str]:
+    """Pipe-separated entity table matching GraphRAG LocalContextBuilder format.
+
+    Header: id | entity | type | description | rank
+    Sorted by frequency (descending) to surface most important entities first.
+    """
+    lines = [
+        "## Entities",
+        COL_SEP.join(["id", "entity", "type", "description", "rank"]),
+    ]
+    for name, d in sorted(nodes_data.items(), key=lambda x: -x[1].get("frequency", 0)):
+        lines.append(COL_SEP.join([
+            str(d.get("entity_id", "")),
+            name,
+            d.get("type", "UNKNOWN"),
+            d.get("description", "")[:300].replace(COL_SEP, " "),
+            str(d.get("degree", 0)),
+        ]))
+    return lines
+
+
+def _build_relationship_table(edges: list[dict[str, Any]]) -> list[str]:
+    """Pipe-separated relationship table matching GraphRAG LocalContextBuilder format.
+
+    Header: id | source | target | description | weight
+    Sorted by weight descending, capped at 15 rows.
+    """
+    lines = [
+        "## Relationships",
+        COL_SEP.join(["id", "source", "target", "description", "weight"]),
+    ]
+    for i, e in enumerate(sorted(edges, key=lambda x: -x["weight"])[:15]):
+        lines.append(COL_SEP.join([
+            str(i),
+            e["source"],
+            e["target"],
+            e["desc"][:300].replace(COL_SEP, " "),
+            f"{e['weight']:.2f}",
+        ]))
+    return lines
+
+
+def _get_related_community_reports(
+    entity_names: Iterable[str],
+    qw: set[str],
+    top_k: int = 3,
+) -> list[dict]:
+    """Return top-k community reports related to the given entities and keywords.
+
+    Used by local_search_hybrid to replicate the community context section that
+    GraphRAG's LocalContextBuilder appends alongside entity/relationship tables.
+    """
+    if _reports_df is None:
+        return []
+    entity_set = {n.lower() for n in entity_names}
+    scored: list[tuple[int, dict]] = []
+    for _, row in _reports_df.iterrows():
+        text = f"{row['title']} {row['summary']} {row.get('full_content', '')}".lower()
+        entity_score = sum(2 for e in entity_set if e in text)
+        kw_score     = sum(1 for w in qw     if w in text)
+        total = entity_score + kw_score
+        if total > 0:
+            scored.append((total, row.to_dict()))
+    scored.sort(key=lambda x: -x[0])
+    return [r for _, r in scored[:top_k]]
+
+
+def _map_community_reports(qw: set[str]) -> list[dict[str, Any]]:
+    """Map phase: score every community report and return importance-scored records.
+
+    Mirrors GlobalSearch._map_response_single_batch() — each community report
+    becomes a key-point dict {"answer": <text>, "score": <0-10>} equivalent to
+    what the LLM would return from the MAP_SYSTEM_PROMPT.
+
+    Records with score == 0 are dropped here (matching the reduce-phase filter
+    `if point["score"] > 0` in GlobalSearch._reduce_response).
+    """
+    results: list[dict[str, Any]] = []
+    for _, row in _reports_df.iterrows():
+        text       = f"{row['title']} {row['summary']} {row.get('full_content', '')}".lower()
+        kw_hits    = sum(1 for w in qw if w in text)
+        title_bonus = sum(2 for w in qw if w in row["title"].lower())
+        # Normalise to 0-10 (matching the score range in MAP_SYSTEM_PROMPT)
+        importance = min(10, kw_hits + title_bonus)
+        if importance == 0:
+            continue                                     # filter score == 0
+
+        # Build "answer" text  →  mirrors the "description" field in map response points
+        findings = row.get("findings", [])
+        kf_lines: list[str] = []
+        if isinstance(findings, list):
+            for f in findings[:3]:
+                txt = f.get("summary", str(f)) if isinstance(f, dict) else str(f)
+                kf_lines.append(f"  - {txt[:200]}")
+
+        answer_parts = [
+            f"**{row['title']}** (Level {row['level']})",
+            f"Summary: {row['summary'][:400]}",
+        ]
+        if kf_lines:
+            answer_parts.append("Key findings:\n" + "\n".join(kf_lines))
+
+        results.append({
+            "answer": "\n".join(answer_parts),
+            "score":  importance,
+        })
+    return results
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Main search functions
+# ══════════════════════════════════════════════════════════════════════════════
+
+def local_search_hybrid(query: str, top_k: int = 10) -> str:
+    """LocalSearch-style graph context + naive passage augmentation.
+
+    Mirrors GraphRAG LocalSearch / LocalContextBuilder:
+      1. Seed entity selection via keyword scoring (word-index O(1) lookup)
+      2. BFS neighbourhood expansion up to top_k entities
+      3. Format pipe-separated tables  →  Entities / Relationships / Community Reports
+         (matching the column names and delimiter used by LocalContextBuilder)
+      4. Append top-5 naive RAG chunks  (hybrid augmentation)
+
+    Best for: specific factual questions (e.g. "graduation conditions").
+
+    Args:
+        query: The user's question in natural language.
+        top_k: Max entities to include (default 10).
+    """
+    _ensure_loaded()
+    qw = set(query.lower().split())
+
+    # ── 1. Seed entity selection ───────────────────────────────────────────────
+    matched = _score_and_rank_entities(qw)
     seeds = matched[:5]
 
-    visited, nodes, edges = set(), {}, []
+    # ── 2. BFS neighbourhood expansion ────────────────────────────────────────
+    visited: set[str]         = set()
+    nodes_data: dict[str, dict] = {}
+    edges: list[dict[str, Any]] = []
+
     for _, n, d in seeds:
         if n not in visited:
             visited.add(n)
-            nodes[n] = d
-    for n in list(nodes.keys())[:5]:
-        for nb in G.neighbors(n):
-            if len(nodes) >= top_k:
+            nodes_data[n] = d
+
+    for n in list(nodes_data.keys()):
+        for nb in _G.neighbors(n):
+            if len(nodes_data) >= top_k:
                 break
             if nb not in visited:
                 visited.add(nb)
-                nodes[nb] = G.nodes[nb]
-            ed = G.get_edge_data(n, nb)
+                nodes_data[nb] = _G.nodes[nb]
+            ed = _G.get_edge_data(n, nb, default={})
             edges.append({
-                "source": n, "target": nb,
-                "desc": ed.get("description", ""),
+                "source": n,
+                "target": nb,
+                "desc":   ed.get("description", ""),
                 "weight": ed.get("weight", 0),
             })
 
-    lines = [f"## Local Search (hybrid): '{query}'", f"Found {len(nodes)} entities\n"]
-    lines.append("### Entities")
-    for name, d in sorted(nodes.items(), key=lambda x: -x[1].get("frequency", 0)):
-        lines.append(f"- **{name}** [{d.get('type', 'N/A')}]")
-        lines.append(f"  {d.get('description', '')[:200]}")
-    lines.append("\n### Relationships")
-    for e in sorted(edges, key=lambda x: -x["weight"])[:10]:
-        lines.append(f"- {e['source']} --> {e['target']}")
-        lines.append(f"  {e['desc'][:200]}")
+    # ── 3. Format LocalContextBuilder-style pipe-separated tables ─────────────
+    lines: list[str] = [f"# LOCAL SEARCH CONTEXT: '{query}'", ""]
 
-    # Append naive search results
+    lines.extend(_build_entity_table(nodes_data))
+    lines.append("")
+    lines.extend(_build_relationship_table(edges))
+    lines.append("")
+
+    # Community context  →  LocalContextBuilder also appends community summaries
+    related = _get_related_community_reports(nodes_data.keys(), qw)
+    if related:
+        lines.append("## Community Reports")
+        lines.append(COL_SEP.join(["id", "title", "level", "summary"]))
+        for row in related:
+            lines.append(COL_SEP.join([
+                str(row.get("id", "")),
+                row["title"].replace(COL_SEP, " "),
+                str(row.get("level", "")),
+                row["summary"][:400].replace(COL_SEP, " "),
+            ]))
+            findings = row.get("findings", [])
+            if isinstance(findings, list) and findings:
+                for f in findings[:3]:
+                    txt = f.get("summary", str(f)) if isinstance(f, dict) else str(f)
+                    lines.append(f"  - {txt[:200]}")
+        lines.append("")
+
+    # ── 4. Hybrid augmentation — append naive RAG passages ────────────────────
     naive_part = _format_naive_section(query)
     if naive_part:
         lines.append(naive_part)
+
     return "\n".join(lines)
 
 
 def global_search_hybrid(query: str, top_k: int = 5) -> str:
-    """Search community reports and append relevant raw passages.
-    Combines graph-based global search (community summaries) with semantic
-    passage retrieval for richer context.
+    """GlobalSearch-style map-reduce over community reports + naive passage augmentation.
+
+    Mirrors the GraphRAG GlobalSearch two-step pipeline:
+
+    Map   — _map_community_reports() scores every community report for relevance
+             (importance 0-10), dropping score == 0 entries.
+             Equivalent to GlobalSearch._map_response_single_batch() running in
+             parallel across context batches and returning
+             {"points": [{"description": ..., "score": ...}]}.
+
+    Reduce — sort by importance descending, keep top-k, format each entry as:
+               ----Analyst N----
+               Importance Score: X
+               <answer text>
+             This is exactly the `text_data` string fed to REDUCE_SYSTEM_PROMPT
+             inside GlobalSearch._reduce_response().
+
+    Hybrid — append top-5 naive RAG chunks for additional passage coverage.
+
     Best for: broad thematic questions (e.g. "training regulations overview").
 
     Args:
         query: The user's question in natural language.
-        top_k: Max community reports (default 5).
+        top_k: Max community reports after reduce step (default 5).
     """
     _ensure_loaded()
-    q = query.lower()
-    qw = set(q.split())
-    scored = []
-    for _, row in _reports_df.iterrows():
-        text = f"{row['title']} {row['summary']} {row['full_content']}".lower()
-        score = sum(1 for w in qw if w in text)
-        if score > 0:
-            scored.append((score, row))
-    if not scored:
-        scored = [(0, row) for _, row in _reports_df.iterrows()]
-    scored.sort(key=lambda x: -x[0])
+    qw = set(query.lower().split())
 
-    lines = [f"## Global Search (hybrid): '{query}'", f"Found {len(scored)} reports\n"]
-    for score, row in scored[:top_k]:
-        lines.append(f"---\n### {row['title']}")
-        lines.append(f"**Rank**: {row['rank']} | **Level**: {row['level']}\n")
-        lines.append(f"**Summary**: {row['summary'][:500]}")
-        findings = row.get("findings", [])
-        if isinstance(findings, list) and findings:
-            lines.append("\n**Key Findings:**")
-            for f in findings[:5]:
-                txt = f.get("summary", str(f)) if isinstance(f, dict) else str(f)
-                lines.append(f"- {txt[:200]}")
+    # ── Map phase: score all community reports ─────────────────────────────────
+    map_responses = _map_community_reports(qw)
+
+    # ── Reduce phase: sort descending, keep top-k ──────────────────────────────
+    # Mirrors GlobalSearch._reduce_response():
+    #   filtered_key_points = sorted(filtered_key_points, key=lambda x: x["score"], reverse=True)
+    map_responses.sort(key=lambda x: -x["score"])
+    top_responses = map_responses[:top_k]
+
+    lines: list[str] = [f"# GLOBAL SEARCH CONTEXT: '{query}'", ""]
+
+    if not top_responses:
+        # Mirrors the NO_DATA_ANSWER path when all scores == 0
+        lines.append(
+            "No relevant community reports found for this query. "
+            "Consider enabling `allow_general_knowledge` to use general knowledge."
+        )
+    else:
+        lines.append("## Analyst Findings")
+        lines.append("*(Reports ranked by relevance — importance score 1–10)*")
         lines.append("")
+        # Format exactly as GlobalSearch._reduce_response() builds `text_data`:
+        #   "----Analyst {N}----\nImportance Score: {score}\n{answer}"
+        for i, point in enumerate(top_responses):
+            lines.append(f"----Analyst {i + 1}----")
+            lines.append(f"Importance Score: {point['score']}")
+            lines.append(point["answer"])
+            lines.append("")
 
-    # Append naive search results
+    # ── Hybrid augmentation — append naive RAG passages ───────────────────────
     naive_part = _format_naive_section(query)
     if naive_part:
         lines.append(naive_part)
+
     return "\n".join(lines)
 
 
-# ═══════════════════════════════════════════════════
-#  Naive Search — FAISS + cosine similarity
-#  No graph, just chunk → embed → similarity
-# ═══════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+#  Naive Search — FAISS + cosine similarity  (unchanged)
+# ══════════════════════════════════════════════════════════════════════════════
 
 def _chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list[str]:
     """Split text into overlapping chunks by word count (sentence-aware)."""
-    import re
-    # Split by sentence boundaries first
-    sentences = re.split(r'(?<=[.?!])\s+', text.replace('\n', ' '))
+    sentences = re.split(r"(?<=[.?!])\s+", text.replace("\n", " "))
     sentences = [s.strip() for s in sentences if s.strip()]
-    chunks = []
-    buffer = []
+    chunks: list[str] = []
+    buffer: list[str] = []
     buf_words = 0
     for s in sentences:
         sw = len(s.split())
         if buf_words + sw > chunk_size and buffer:
-            chunks.append(' '.join(buffer))
+            chunks.append(" ".join(buffer))
             # Keep last `overlap` words as overlap
-            overlap_words = []
+            overlap_words: list[str] = []
             ow = 0
             for b in reversed(buffer):
                 bw = len(b.split())
@@ -300,23 +493,22 @@ def _chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list[str
         buffer.append(s)
         buf_words += sw
     if buffer:
-        chunks.append(' '.join(buffer))
+        chunks.append(" ".join(buffer))
     return chunks
 
 
-def _ensure_naive_index():
+def _ensure_naive_index() -> None:
     """Load or build the FAISS index from book.txt chunks."""
     global _naive_index, _naive_chunks, _naive_model, _use_gpu
     if _naive_index is not None:
         return
+
     if os.path.exists(NAIVE_INDEX_FILE) and os.path.exists(NAIVE_CHUNKS_FILE):
         print("Loading cached FAISS index...")
         cpu_index = faiss.read_index(NAIVE_INDEX_FILE)
         with open(NAIVE_CHUNKS_FILE, "rb") as f:
             _naive_chunks = pickle.load(f)
         print(f"  {len(_naive_chunks)} chunks, dim={cpu_index.d}")
-        # Detect GPU for sentence-transformers
-        _use_gpu = _faiss_has_gpu
         try:
             import torch
             _use_gpu = torch.cuda.is_available()
@@ -327,7 +519,6 @@ def _ensure_naive_index():
         _naive_index = _move_index_to_gpu(cpu_index) if _use_gpu else cpu_index
         return
 
-    _use_gpu = _faiss_has_gpu
     try:
         import torch
         _use_gpu = torch.cuda.is_available()
@@ -336,6 +527,7 @@ def _ensure_naive_index():
     except ImportError:
         _use_gpu = False
     device = "cuda" if _use_gpu else "cpu"
+
     print("Building FAISS index from book.txt...")
     if not os.path.exists(INPUT_FILE):
         raise FileNotFoundError(f"Input file not found: {INPUT_FILE}")
@@ -361,7 +553,7 @@ def _ensure_naive_index():
 
 
 def naive_search(query: str, top_k: int = 5) -> str:
-    """(internal) Search by cosine similarity via FAISS."""
+    """Search by cosine similarity via FAISS (no graph, no community reports)."""
     _ensure_naive_index()
     global _naive_model
     if _naive_model is None:
@@ -383,12 +575,11 @@ def naive_search(query: str, top_k: int = 5) -> str:
     return "\n".join(lines)
 
 
-def warmup():
-    """Pre-load heavy resources (graph cache, FAISS index, embeddings model)
-    at startup so the first request is fast."""
+def warmup() -> None:
+    """Pre-load heavy resources at startup so the first request is fast."""
     import time
     t0 = time.time()
     print("Warming up GraphRAG resources...")
     _ensure_loaded()
     _ensure_naive_index()
-    print(f"Warmup complete in {time.time()-t0:.1f}s")
+    print(f"Warmup complete in {time.time() - t0:.1f}s")

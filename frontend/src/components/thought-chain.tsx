@@ -27,28 +27,20 @@ export function ThoughtChain({ thoughts, isStreaming, className }: ThoughtChainP
   if (thoughts.length === 0 && !isStreaming) return null;
 
   return (
-    <div className={cn("mb-3", className)}>
+    <div className={cn("mb-2", className)}>
       <button
         onClick={() => setExpanded(!expanded)}
-        className={cn(
-          "flex items-center gap-2 text-xs font-medium transition-colors w-full",
-          "text-thought-text hover:text-muted-foreground"
-        )}
+        className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-80"
+        style={{ color: "#999999" }}
       >
-        <Brain
-          className={cn(
-            "h-3.5 w-3.5",
-            isStreaming && "animate-pulse-subtle"
-          )}
-        />
         <span>
           {thoughts.length > 0
-            ? `Thought process (${thoughts.length} step${thoughts.length > 1 ? "s" : ""})`
-            : "Thinking..."}
+            ? `Quy trình phân tích (${thoughts.length} bước)`
+            : "Đang phân tích thông tin..."}
         </span>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 transition-transform duration-200",
+            "h-3 w-3 transition-transform duration-200",
             expanded ? "rotate-0" : "-rotate-90"
           )}
         />
@@ -56,29 +48,34 @@ export function ThoughtChain({ thoughts, isStreaming, className }: ThoughtChainP
 
       <div
         className={cn(
-          "overflow-hidden transition-all duration-300 ease-in-out",
-          expanded ? "max-h-[1000px] opacity-100 mt-2" : "max-h-0 opacity-0"
+          "overflow-hidden transition-all duration-300 ease-in-out ml-3 mt-1",
+          expanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <div className="border-l-2 border-thought-border pl-3 space-y-2">
+        <div
+          className="border-l-[1.5px] pl-4 space-y-2.5 py-1"
+          style={{ borderColor: "color-mix(in srgb, var(--border) 60%, transparent)" }}
+        >
           {thoughts.map((thought, i) => (
             <div
               key={i}
               className={cn(
-                "text-xs text-thought-text leading-relaxed py-0.5",
-                "animate-slide-up",
+                "text-xs leading-relaxed animate-slide-up",
                 `[animation-delay:${i * 80}ms]`
               )}
-              style={{ animationDelay: `${i * 80}ms` }}
+              style={{
+                color: "var(--muted-foreground)",
+                animationDelay: `${i * 80}ms`
+              }}
             >
               {thought.content}
             </div>
           ))}
 
           {isStreaming && thoughts.length === 0 && (
-            <div className="flex items-center gap-2 text-xs text-thought-text py-0.5 animate-pulse-subtle">
+            <div className="flex items-center gap-2 text-xs py-0.5 animate-pulse-subtle" style={{ color: "var(--muted-foreground)" }}>
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent animate-pulse-subtle" />
-              Analyzing your question...
+              Đang tiếp nhận dữ liệu...
             </div>
           )}
         </div>

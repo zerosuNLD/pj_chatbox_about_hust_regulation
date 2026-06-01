@@ -1,68 +1,125 @@
-# Dependencies
-node_modules/
-.pnp
-.pnp.*
-.yarn/
-.npm-cache/
+# =============================================================================
+# HUST Q&A Chatbot — .gitignore
+# =============================================================================
 
-# Ignore backend logs
-backend/logs/
-backend/output/
-backend/checkpoints.db
+# ---------------------------------------------------------------------------
+# Secrets & Environment Variables (NEVER commit these)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
 
-.agents/
-.npm-cache
-backend-repo/
-
-# Ignore frontend build output
-.next/
-out/
-build/
-
-# Python / virtualenv
+# ---------------------------------------------------------------------------
+# Python — Backend
+# ---------------------------------------------------------------------------
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
 .venv/
 venv/
 ENV/
 env/
-.env
-.env.*
+.Python
 
-# Databases & local persistent storage
+# ---------------------------------------------------------------------------
+# Databases & Persistent Storage
+# ---------------------------------------------------------------------------
 *.db
 *.db-shm
 *.db-wal
+*.sqlite
+*.sqlite3
 
-# GraphRAG and Python runtime cache/outputs
+# ---------------------------------------------------------------------------
+# GraphRAG & AI Runtime Artifacts
+# ---------------------------------------------------------------------------
 backend/cache/
 backend/data-gym-cache/
 backend/logs/
 backend/output/
 backend/tmp/
-backend/torchinductor_duy/
+backend/torchinductor*/
 backend/input/book.txt
 
-# Generated data files (parquet, pickle, FAISS)
+# Generated ML data files
 *.parquet
 *.pkl
 *.faiss
+*.bin
+*.pt
+*.ckpt
 
-# IDE & system metadata
-.DS_Store
-*.pem
+# ---------------------------------------------------------------------------
+# Node.js — Frontend
+# ---------------------------------------------------------------------------
+node_modules/
+.pnp
+.pnp.*
+.yarn/
+
+# Next.js
+.next/
+out/
+
+# Build output
+dist/
+build/
+
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-.vercel/
+
+# TypeScript build info
 *.tsbuildinfo
 next-env.d.ts
-.agents/
-backend-repo/
 
-# OS thumbnails
+# ---------------------------------------------------------------------------
+# Vercel
+# ---------------------------------------------------------------------------
+.vercel/
+.vercel
+
+# ---------------------------------------------------------------------------
+# IDE & Editor
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
 Thumbs.db
 Desktop.ini
+ehthumbs.db
+*.stackdump
+[Dd]esktop.ini
+
+# ---------------------------------------------------------------------------
+# Misc / Internal Tools
+# ---------------------------------------------------------------------------
+.agents/
+backend-repo/
+.npm-cache/
+.npm-cache
+cloudflared
+skills-lock.json
+
+# Scratch / debug scripts
+backend/scratch_*.py
+backend/test_config.py
+backend/patch_graphrag.py
+backend/export_graphml.py

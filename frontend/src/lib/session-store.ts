@@ -68,8 +68,13 @@ export function createSession(firstMessage?: string): ChatSession {
   };
 
   const sessions = readSessions();
-  sessions.unshift(session);
-  writeSessions(sessions);
+  // Clean up existing empty "New chat" sessions to avoid clutter
+  const filteredSessions = sessions.filter(
+    (s) => s.messages.length > 0 || s.name !== "New chat"
+  );
+  
+  filteredSessions.unshift(session);
+  writeSessions(filteredSessions);
   saveActiveSessionId(session.id);
 
   return session;

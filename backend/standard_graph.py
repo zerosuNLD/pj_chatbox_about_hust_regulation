@@ -32,14 +32,14 @@ _DEEPSEEK_KEY: str | None = os.environ.get("DEEPSEEK_API_KEY")
 
 
 
-def _local_search(query: str, top_k: int = 6) -> str:
+def _local_search(query: str, top_k: int = 10) -> str:
     """Search knowledge-graph entities/relationships for specific facts,
     requirements, deadlines, scores, or particular regulations.
     Returns detailed entity descriptions and relationships with raw passages."""
     return local_search_hybrid(query, top_k)
 
 
-def _global_search(query: str, top_k: int = 4) -> str:
+def _global_search(query: str, top_k: int = 10) -> str:
     """Search community summaries for broad themes, policies, or overviews
     across multiple regulation topics.
     Returns structured report summaries with key findings."""

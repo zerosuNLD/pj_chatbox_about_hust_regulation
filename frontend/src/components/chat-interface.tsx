@@ -3,15 +3,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { ChatInput } from "@/components/chat-input";
 import { Message } from "@/components/message";
+import { WelcomeScreen } from "@/components/welcome-screen";
 import { useStreamChat } from "@/hooks/use-stream-chat";
 import { DEFAULT_MODEL, type ModelOption } from "@/lib/models";
 
 interface ChatInterfaceProps {
   sessionId: string | null;
   onFirstMessage?: () => void;
+  hasMessages?: boolean;
 }
 
-export function ChatInterface({ sessionId, onFirstMessage }: ChatInterfaceProps) {
+export function ChatInterface({ sessionId, onFirstMessage, hasMessages }: ChatInterfaceProps) {
   const {
     messages,
     isStreaming,
@@ -42,78 +44,74 @@ export function ChatInterface({ sessionId, onFirstMessage }: ChatInterfaceProps)
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingAnswer, streamingThoughts, messagesEndRef]);
 
-  if (messages.length === 0) {
-    return (
-      <div className="flex flex-1 flex-col justify-end">
-        <div className="flex-1" />
-        <ChatInput
-          onSend={handleSend}
-          onStop={stopStreaming}
-          isStreaming={isStreaming}
-          selectedModel={selectedModel}
-          onSelectModel={setSelectedModel}
-        />
-      </div>
-    );
-  }
+  const showWelcome = messages.length === 0;
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="divide-y divide-border">
-          {messages.map((msg) => {
-            const isLastAssistant =
-              msg.role === "assistant" && msg.id === messages[messages.length - 1]?.id;
-
-            return (
-              <Message
-                key={msg.id}
-                id={msg.id}
-                role={msg.role}
-                content={msg.content}
-                thoughts={msg.thoughts}
-                sources={msg.sources}
-                clarifyPrompt={msg.clarifyPrompt}
-                isStreaming={isLastAssistant && isStreaming}
-                streamingContent={
-                  isLastAssistant && isStreaming
-                    ? streamingAnswer
-                    : undefined
-                }
-                streamingThoughts={
-                  isLastAssistant && isStreaming
-                    ? streamingThoughts
-                    : undefined
-                }
-                streamingSources={
-                  isLastAssistant && isStreaming
-                    ? streamingSources
-                    : undefined
-                }
-                streamingClarifyPrompt={
-                  isLastAssistant && isStreaming
-                    ? streamingClarifyPrompt
-                    : undefined
-                }
-                onClarifyResponse={(approved) => respondToClarify(msg.id, approved)}
-              />
-            );
-          })}
+      {showWelcome ? (
+        <div className="flex flex-col flex-1 items-center justify-center min-h-0 w-full px-4 mb-20">
+          <WelcomeScreen onPromptSelect={handleSend} />
+          <div className="w-full mt-8">
+            <ChatInput
+              onSend={handleSend}
+              onStop={stopStreaming}
+              isStreaming={isStreaming}
+              selectedModel={selectedModel}
+              onSelectModel={setSelectedModel}
+            />
+          </div>
         </div>
-        <div ref={messagesEndRef} />
-      </div>
+      ) : (
+        <>
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-[760px] mx-auto w-full py-4 px-6">
+              {messages.map((msg) => {
+                const isLastAssistant =
+                  msg.role === "assistant" && msg.id === messages[messages.length - 1]?.id;
 
-      {/* Input area */}
-      <div className="py-4">
-        <ChatInput
-          onSend={handleSend}
-          onStop={stopStreaming}
-          isStreaming={isStreaming}
-          selectedModel={selectedModel}
-          onSelectModel={setSelectedModel}
-        />
-      </div>
+                return (
+                  <Message
+                    key={msg.id}
+                    id={msg.id}
+                    role={msg.role}
+                    content={msg.content}
+                    thoughts={msg.thoughts}
+                    sources={msg.sources}
+                    clarifyPrompt={msg.clarifyPrompt}
+                    isStreaming={isLastAssistant && isStreaming}
+                    streamingContent={
+                      isLastAssistant && isStreaming ? streamingAnswer : undefined
+                    }
+                    streamingThoughts={
+                      isLastAssistant && isStreaming ? streamingThoughts : undefined
+                    }
+                    streamingSources={
+                      isLastAssistant && isStreaming ? streamingSources : undefined
+                    }
+                    streamingClarifyPrompt={
+                      isLastAssistant && isStreaming ? streamingClarifyPrompt : undefined
+                    }
+                    onClarifyResponse={(approved) => respondToClarify(msg.id, approved)}
+                  />
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+          
+          {/* Input area — no background, blends with page */}
+          <div className="shrink-0 py-4 z-10">
+            <ChatInput
+              onSend={handleSend}
+              onStop={stopStreaming}
+              isStreaming={isStreaming}
+              selectedModel={selectedModel}
+              onSelectModel={setSelectedModel}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

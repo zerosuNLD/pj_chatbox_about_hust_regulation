@@ -38,14 +38,12 @@ export function ModelSelector({
         disabled={disabled}
         className={cn(
           "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5",
-          "text-xs font-medium transition-colors",
-          "border border-border bg-muted/50",
-          "hover:bg-muted hover:border-muted-foreground/30",
+          "text-[13px] font-medium transition-colors text-muted-foreground",
+          "hover:bg-muted hover:text-foreground",
           "disabled:opacity-50 disabled:cursor-not-allowed"
         )}
       >
-        <Cpu className="h-3 w-3 text-accent" />
-        <span className="text-foreground">{selectedModel.name}</span>
+        <span>{selectedModel.name}</span>
         <ChevronDown
           className={cn(
             "h-3 w-3 text-muted-foreground transition-transform duration-150",
