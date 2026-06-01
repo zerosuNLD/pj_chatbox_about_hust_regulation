@@ -18,8 +18,6 @@ __pycache__/
 *.so
 *.egg
 *.egg-info/
-dist/
-build/
 .eggs/
 .venv/
 venv/
@@ -37,19 +35,25 @@ env/
 *.sqlite3
 
 # ---------------------------------------------------------------------------
-# GraphRAG & AI Runtime Artifacts
+# GraphRAG — Selectively ignore generated/large files
+# Keep:  output/*.parquet  (pre-built knowledge graph, needed by Docker)
+# Ignore: caches, indexes, large binaries
 # ---------------------------------------------------------------------------
 backend/cache/
-backend/data-gym-cache/
 backend/logs/
-backend/output/
 backend/tmp/
 backend/torchinductor*/
 backend/input/book.txt
 
-# Generated ML data files
-*.parquet
-*.pkl
+# Output: ignore large/generated files, KEEP parquet files
+backend/output/lancedb/
+backend/output/naive_index/
+backend/output/*.pkl
+backend/output/*.graphml
+backend/output/context.json
+backend/output/stats.json
+
+# Generated ML data files (non-parquet)
 *.faiss
 *.bin
 *.pt
@@ -123,3 +127,4 @@ backend/scratch_*.py
 backend/test_config.py
 backend/patch_graphrag.py
 backend/export_graphml.py
+backend/standard_indent.py

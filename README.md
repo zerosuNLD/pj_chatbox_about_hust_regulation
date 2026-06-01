@@ -85,7 +85,45 @@ hust-qa/
 
 ---
 
-## 🚀 Hướng dẫn cài đặt & Chạy
+## 🐳 Cài đặt nhanh với Docker (Khuyến nghị)
+
+> Cách đơn giản nhất — chỉ cần **Docker Desktop** và **API keys**, không cần cài Python hay Node.js.
+
+### Yêu cầu
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) đã cài và đang chạy
+
+### 3 bước để chạy
+
+```bash
+# Bước 1: Clone dự án
+git clone https://github.com/zerosuNLD/pj_chatbox_about_hust_regulation.git
+cd pj_chatbox_about_hust_regulation
+
+# Bước 2: Tạo file .env và điền API keys
+cp backend/.env.example backend/.env
+# Mở backend/.env, điền GROQ_API_KEY và DEEPSEEK_API_KEY
+
+# Bước 3: Build và chạy
+docker compose up --build
+```
+
+✅ Mở trình duyệt tại **`http://localhost:3000`**
+
+> **Lần đầu chạy**: Docker build ~3-5 phút (tải dependencies), sau đó backend tự động build FAISS search index (~30-60 giây). Các lần chạy sau chỉ mất vài giây.
+
+### Dừng ứng dụng
+```bash
+docker compose down
+```
+
+### Reset hoàn toàn (bao gồm xóa FAISS index cache)
+```bash
+docker compose down -v
+```
+
+---
+
+## 🚀 Hướng dẫn cài đặt & Chạy (Thủ công)
 
 ### Yêu cầu hệ thống
 
