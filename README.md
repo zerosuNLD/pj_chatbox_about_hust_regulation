@@ -1,83 +1,97 @@
-# 🎓 HUST Q&A — Trợ Lý Ảo Quy Chế Đào Tạo ĐHBK Hà Nội
+# HUST Q&A — AI Assistant for HUST Academic Regulations
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-0.136%2B-009688?logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white" />
-  <img src="https://img.shields.io/badge/LangGraph-ReAct_Agent-blueviolet" />
-  <img src="https://img.shields.io/badge/GraphRAG-Knowledge_Graph-orange" />
-  <img src="https://img.shields.io/badge/License-MIT-green" />
-</p>
+Main technologies: Python 3.10+, FastAPI 0.136+, Next.js 14, LangGraph ReAct Agent, GraphRAG Knowledge Graph, MIT License.
 
-Hệ thống **Trợ lý Ảo thông minh** chuyên giải đáp câu hỏi về **Quy chế Đào tạo của Đại học Bách Khoa Hà Nội (HUST)**. Dự án tích hợp công nghệ **GraphRAG** (đồ thị tri thức) với **LangGraph ReAct Agent** và bộ nhớ hội thoại dài hạn để cung cấp câu trả lời chính xác, có trích dẫn nguồn.
+Build a chatbot for answering questions about HUST academic regulations 2026 (https://github.com/user-attachments/assets/96021338-6b36-4597-879d-e062aa868718)
+
+---
+## Approach
+
+Data preprocessing: convert to Markdown, remove logos, remove footers, convert tables to corresponding text.
+
+Represent the data as a knowledge graph (by extracting entities and relationships between entities, using the Leiden algorithm to split into communities, etc.).
+
+Write retrieval tools on top of the knowledge graph (based on global search and local search algorithms), while also combining them with chunks retrieved by naive search (standard RAG style: retrieve the top-k most relevant sentences).
+
+Build a ReAct agent equipped with tools for retrieving internal information, together with memory management using long-term memories and short-term memories (using the LangGraph library to build the agent).
+
+Build the interface using Next.js as the frontend, while the agent is implemented with FastAPI.
+
+Use SSE so that the thought stream and the final answer can be streamed to the user interface.
+
+---
+## System Architecture
+
+### Agent
+
+The user's question is combined with short-term memory and then passed to the agent.
+The agent operates in a thought – action – observation loop with a max step of 8.
+The agent is provided with 3 tools: get_user_memory, global_search_hybrid, local_search_hybrid.
+<img width="1392" height="545" alt="image" src="https://github.com/user-attachments/assets/e7c4e6bf-a417-4579-9fb8-f10d93812131" />
+
+
+### Knowledge graph
+The knowledge graph is built using the micrograghrag library with the following settings:
+
+AI model: deepseek-v4-flash  
+Embedding model: bge-m3  
+Chunking with size = 800, overlap = 100  
+Entity types to extract: [organization, regulation, program, course, person, credit, degree, condition, deadline]
+
+Knowledge graph after creation:
+<img width="783" height="484" alt="image" src="https://github.com/user-attachments/assets/22cda981-8377-40fa-bbb8-d5c85de8b437" />  
+Nodes: 625  
+Edges: 1411  
+Communities: 21 (created by the Leiden Algorithm)  
+
+### Retrieval
+There are 2 tools that the agent can use for search:
+
+@tool: local_search_hybrid: information extraction based on a combination of Local Search and Naive Search  
+@tool: global_search_hybrid: based on a combination of Global Search and Naive Search
+
+Local Search: used when asking a specific question with a clear target — asking about a specific entity, clause, or regulation.  
+<img width="1430" height="92" alt="image" src="https://github.com/user-attachments/assets/bf76d1bc-f39f-4fab-b7fd-d14ed4548acf" />
+
+Global Search: used when asking general overview questions.  
+<img width="1447" height="84" alt="image" src="https://github.com/user-attachments/assets/351d9a1e-c205-41fd-9174-f1000685e802" />
+
+Naive Search:
+<img width="1403" height="213" alt="image" src="https://github.com/user-attachments/assets/3d628fca-9517-4e7c-ae35-a064b88e5326" />
+
+### Memories
+Managed using short-term memory and long-term memory.
+
+Short-term memory:
+<img width="1443" height="106" alt="image" src="https://github.com/user-attachments/assets/3c1f39d2-0b98-4c34-94ac-bc8e0ef97bb0" />
+
+Long-term memory:
+<img width="1351" height="317" alt="image" src="https://github.com/user-attachments/assets/ee0a0db4-fb11-4692-96f8-35e3af85058d" />
 
 ---
 
-## ✨ Tính năng nổi bật
+## Project Structure
 
-| Tính năng | Mô tả |
-|-----------|-------|
-| 🔍 **Hybrid Search** | Kết hợp local search + global search trên đồ thị tri thức GraphRAG |
-| 🧠 **ReAct Agent** | LangGraph agent tự động lập kế hoạch và tra cứu nhiều bước |
-| 💾 **Bộ nhớ ngắn hạn** | Lưu lịch sử hội thoại qua `AsyncSqliteSaver` của LangGraph |
-| 📌 **Bộ nhớ dài hạn** | Ghi nhớ thông tin người dùng (tên, ngành, lớp,...) vào SQLite |
-| ⚡ **SSE Streaming** | Hiển thị luồng suy nghĩ (Thought Chain) real-time trên giao diện |
-| 📚 **Trích dẫn nguồn** | Tự động đính kèm điều khoản quy chế làm nguồn tham chiếu |
-| 🛡️ **Human-in-the-loop** | Xác nhận trước khi lưu thông tin cá nhân vào bộ nhớ dài hạn |
-
----
-
-## 🏗️ Kiến trúc hệ thống
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                      Frontend (Next.js)                  │
-│   React + TypeScript + TailwindCSS + SSE streaming       │
-└────────────────────────┬────────────────────────────────┘
-                         │ HTTP / SSE
-┌────────────────────────▼────────────────────────────────┐
-│                    Backend (FastAPI)                      │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │           LangGraph ReAct Agent                   │   │
-│  │  ┌─────────────┐  ┌──────────────────────────┐  │   │
-│  │  │  Short-term  │  │      GraphRAG Tools       │  │   │
-│  │  │   Memory     │  │  local_search_hybrid      │  │   │
-│  │  │  (SQLite)    │  │  global_search_hybrid     │  │   │
-│  │  └─────────────┘  │  save_user_memory          │  │   │
-│  │  ┌─────────────┐  └──────────────────────────┘  │   │
-│  │  │  Long-term   │                                 │   │
-│  │  │   Memory     │  ┌──────────────────────────┐  │   │
-│  │  │  (SQLite)    │  │  Knowledge Graph (FAISS + │  │   │
-│  │  └─────────────┘  │  NetworkX GraphML)         │  │   │
-│  └──────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📁 Cấu trúc thư mục
-
-```
+```text
 hust-qa/
 ├── backend/                    # FastAPI + LangGraph backend
 │   ├── server.py               # Entry point: FastAPI app + SSE endpoints
 │   ├── standard_graph.py       # LangGraph ReAct agent workflow
-│   ├── graphrag_tools.py       # Công cụ GraphRAG (local/global search)
-│   ├── graphrag_workflow.py    # Pipeline xây dựng knowledge graph
+│   ├── graphrag_tools.py       # GraphRAG tools (local/global search)
+│   ├── graphrag_workflow.py    # Knowledge graph construction pipeline
 │   ├── requirements.txt        # Python dependencies
-│   ├── settings.yaml           # Cấu hình GraphRAG
-│   ├── .env.example            # Template biến môi trường (copy → .env)
-│   ├── input/                  # Tài liệu quy chế đầu vào (*.txt)
-│   ├── prompts/                # System prompts cho agent
-│   └── memories/               # Bộ nhớ dài hạn người dùng (.md files)
+│   ├── settings.yaml           # GraphRAG configuration
+│   ├── .env.example            # Environment template (copy → .env)
+│   ├── input/                  # Input regulation documents (*.txt)
+│   ├── prompts/                # System prompts for the agent
+│   └── memories/               # User long-term memory (.md files)
 │
 ├── frontend/                   # Next.js frontend
 │   ├── src/
 │   │   ├── app/                # Next.js App Router
 │   │   └── components/         # React components
 │   ├── package.json
-│   └── .env.local.example      # Template biến môi trường frontend
+│   └── .env.local.example      # Frontend environment template
 │
 ├── .gitignore
 └── README.md
@@ -85,50 +99,50 @@ hust-qa/
 
 ---
 
-## 🐳 Cài đặt nhanh với Docker (Khuyến nghị)
+## Quick Setup with Docker (Recommended)
 
-> Cách đơn giản nhất — chỉ cần **Docker Desktop** và **API keys**, không cần cài Python hay Node.js.
+> The simplest way — only **Docker Desktop** and **API keys** are required, no need to install Python or Node.js.
 
-### Yêu cầu
+### Requirements
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-### 3 bước để chạy
+### 3 steps to run
 
 ```bash
-# Bước 1: Clone dự án
+# Step 1: Clone the project
 git clone https://github.com/zerosuNLD/pj_chatbox_about_hust_regulation.git
 cd pj_chatbox_about_hust_regulation
 
-# Bước 2: Tạo file .env và điền API keys
+# Step 2: Create the .env file and fill in API keys
 cp backend/.env.example backend/.env
-# Mở backend/.env, điền GROQ_API_KEY và DEEPSEEK_API_KEY
+# Open backend/.env and set GROQ_API_KEY and DEEPSEEK_API_KEY
 
-# Bước 3: Build và chạy
+# Step 3: Build and run
 docker compose up --build
 ```
 
-✅ Mở trình duyệt tại **`http://localhost:3000`**
+Open your browser at **`http://localhost:3000`**
 
-> **Lần đầu chạy**: Docker build ~3-5 phút (tải dependencies), sau đó backend tự động build FAISS search index (~30-60 giây). Các lần chạy sau chỉ mất vài giây.
+> **First run**: Docker build takes about 3–5 minutes (to download dependencies), then the backend automatically builds the FAISS search index (~30–60 seconds). Subsequent runs take only a few seconds.
 
-### Dừng ứng dụng
+### Stop the application
 ```bash
 docker compose down
 ```
 
-### Reset hoàn toàn (bao gồm xóa FAISS index cache)
+### Fully reset (including deleting FAISS index cache)
 ```bash
 docker compose down -v
 ```
 
 ---
 
-## 🚀 Hướng dẫn cài đặt & Chạy (Thủ công)
+## Installation & Run Guide (Manual)
 
-### Yêu cầu hệ thống
+### System requirements
 
-| Công nghệ | Phiên bản tối thiểu |
-|-----------|---------------------|
+| Technology | Minimum version |
+|-----------|------------------|
 | Python | 3.10+ |
 | Node.js | 18+ |
 | npm | 9+ |
@@ -136,7 +150,7 @@ docker compose down -v
 
 ---
 
-### ⚙️ Bước 1: Clone dự án
+### Step 1: Clone the project
 
 ```bash
 git clone https://github.com/<your-username>/hust-qa.git
@@ -145,15 +159,15 @@ cd hust-qa
 
 ---
 
-### 🐍 Bước 2: Cài đặt & Chạy Backend
+### Step 2: Install & Run the Backend
 
-#### 2.1 Di chuyển vào thư mục backend
+#### 2.1 Move into the backend directory
 
 ```bash
 cd backend
 ```
 
-#### 2.2 Tạo virtual environment (khuyến nghị)
+#### 2.2 Create a virtual environment (recommended)
 
 ```bash
 # Windows
@@ -165,17 +179,17 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-#### 2.3 Cài đặt các thư viện Python
+#### 2.3 Install Python libraries
 
 ```bash
 pip install -r requirements.txt
 ```
 
-> **Lưu ý:** Quá trình cài đặt `faiss-cpu` và `sentence-transformers` có thể mất vài phút.
+> **Note:** Installing `faiss-cpu` and `sentence-transformers` may take a few minutes.
 
-#### 2.4 Cấu hình biến môi trường
+#### 2.4 Configure environment variables
 
-Sao chép file template và điền API keys:
+Copy the template file and fill in the API keys:
 
 ```bash
 # Windows
@@ -185,38 +199,38 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Mở file `.env` và điền thông tin:
+Open the `.env` file and fill in the information:
 
 ```env
-# Bắt buộc: Groq API (đăng ký miễn phí tại https://console.groq.com)
+# Required: Groq API (free registration at https://console.groq.com)
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Tùy chọn: DeepSeek API (https://platform.deepseek.com)
+# Optional: DeepSeek API (https://platform.deepseek.com)
 DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # GraphRAG API Key (Cloudflare AI / OpenAI compatible)
 GRAPHRAG_API_KEY=your_graphrag_api_key_here
 ```
 
-#### 2.5 (Lần đầu) Xây dựng Knowledge Graph
+#### 2.5 (First time only) Build the Knowledge Graph
 
-Nếu chưa có thư mục `backend/output/` (chứa đồ thị tri thức), cần chạy pipeline GraphRAG:
+If the `backend/output/` directory does not exist (it contains the knowledge graph), run the GraphRAG pipeline:
 
 ```bash
 python graphrag_workflow.py
 ```
 
-> ⏳ Bước này có thể mất **15–30 phút** tùy kích thước tài liệu. Chỉ cần chạy **một lần**.
+> This step may take **15–30 minutes** depending on the document size. It only needs to be run **once**.
 
-#### 2.6 Khởi chạy server Backend
+#### 2.6 Start the Backend Server
 
 ```bash
 python server.py
 ```
 
-✅ Server backend sẽ chạy tại: **`http://localhost:8000`**
+The backend server will run at: **`http://localhost:8000`**
 
-Kiểm tra trạng thái:
+Check status:
 ```bash
 curl http://localhost:8000/health
 # → {"status": "ok"}
@@ -224,21 +238,21 @@ curl http://localhost:8000/health
 
 ---
 
-### 🌐 Bước 3: Cài đặt & Chạy Frontend
+### Step 3: Install & Run the Frontend
 
-Mở terminal mới, di chuyển vào thư mục frontend:
+Open a new terminal and move into the frontend directory:
 
 ```bash
 cd frontend
 ```
 
-#### 3.1 Cài đặt dependencies
+#### 3.1 Install dependencies
 
 ```bash
 npm install
 ```
 
-#### 3.2 Cấu hình biến môi trường
+#### 3.2 Configure environment variables
 
 ```bash
 # Windows
@@ -248,37 +262,35 @@ echo NEXT_PUBLIC_API_URL=http://localhost:8000 > .env.local
 echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
 ```
 
-Hoặc tạo file `.env.local` thủ công:
+Or create the `.env.local` file manually:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-#### 3.3 Khởi chạy Frontend
+#### 3.3 Start the Frontend
 
 ```bash
 npm run dev
 ```
 
-✅ Mở trình duyệt tại: **`http://localhost:3000`**
+Open your browser at: **`http://localhost:3000`**
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| `GET` | `/health` | Kiểm tra trạng thái server |
-| `POST` | `/ask` | Gửi câu hỏi, nhận phản hồi SSE streaming |
-| `POST` | `/resume` | Tiếp tục sau Human-in-the-loop interrupt |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Check server status |
+| `POST` | `/ask` | Send a question and receive SSE streaming responses |
+| `POST` | `/resume` | Continue after a Human-in-the-loop interrupt |
 
-### Ví dụ gọi API `/ask`
+### Example of calling the `/ask` API
 
 ```bash
-curl -X POST http://localhost:8000/ask \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "Điều kiện tốt nghiệp đại học tại HUST là gì?",
+curl -X POST http://localhost:8000/ask   -H "Content-Type: application/json"   -d '{
+    "question": "What are the graduation requirements at HUST?",
     "thread_id": "user-123-session-1",
     "user_id": "user-123"
   }'
@@ -286,19 +298,19 @@ curl -X POST http://localhost:8000/ask \
 
 ### SSE Event Types
 
-| Event | Mô tả |
-|-------|-------|
-| `thought` | Bước suy luận của agent (tool call, tra cứu,...) |
-| `answer` | Token câu trả lời cuối cùng (streaming) |
-| `answer_retract` | Thu hồi câu trả lời tạm (khi phát hiện cần gọi thêm tool) |
-| `sources` | Danh sách nguồn trích dẫn |
-| `clarify` | Yêu cầu xác nhận từ người dùng (HITL) |
-| `done` | Kết thúc stream |
-| `error` | Lỗi xảy ra |
+| Event | Description |
+|-------|-------------|
+| `thought` | Agent reasoning step (tool call, retrieval, etc.) |
+| `answer` | Final answer token (streaming) |
+| `answer_retract` | Retract temporary answer (when more tool calls are needed) |
+| `sources` | List of cited sources |
+| `clarify` | Ask the user for confirmation (HITL) |
+| `done` | End of stream |
+| `error` | An error occurred |
 
 ---
 
-## 🛠️ Công nghệ sử dụng
+## Technologies Used
 
 ### Backend
 - **[FastAPI](https://fastapi.tiangolo.com/)** — REST API framework
@@ -314,39 +326,6 @@ curl -X POST http://localhost:8000/ask \
 - **[TypeScript](https://www.typescriptlang.org/)** — Type safety
 - **[TailwindCSS](https://tailwindcss.com/)** — Styling
 - **[react-markdown](https://github.com/remarkjs/react-markdown)** — Markdown rendering
-
----
-
-## 🔧 Xử lý lỗi thường gặp
-
-### ❌ `ModuleNotFoundError: No module named 'dotenv'`
-```bash
-pip install python-dotenv
-```
-
-### ❌ SQLite I/O error trên WSL
-Server tự động phát hiện WSL và chuyển checkpoints sang `/tmp/`. Nếu vẫn lỗi:
-```bash
-export TMPDIR=/tmp
-python server.py
-```
-
-### ❌ Frontend không kết nối được backend
-Kiểm tra file `frontend/.env.local` có đúng `NEXT_PUBLIC_API_URL=http://localhost:8000`.
-Đảm bảo backend đang chạy và CORS đã được bật (mặc định `allow_origins=["*"]`).
-
-### ❌ GraphRAG output không tìm thấy
-Cần chạy lại pipeline:
-```bash
-cd backend
-python graphrag_workflow.py
-```
-
----
-
-## 📄 License
-
-Dự án được phân phối theo giấy phép **MIT**. Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ---
 
